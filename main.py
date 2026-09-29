@@ -1,28 +1,40 @@
 import csv
 import os
 from collections.abc import Generator
+from dataclasses import dataclass
 from pathlib import Path
-import sys
+from typing import Self
 
+from bs4.dammit import EntitySubstitution
 import httpx
 from bs4 import BeautifulSoup
+from cyclopts.core import App
 
-from entry import Entry
+cli = App()
+
+
+
+@dataclass
+class Entry:
+    phonetic: str
+    english: str
+    script: str
+    appears_in: str
+
+    @staticmethod
+    def from_list(data: list[str]) -> Entry:
+        return Entry(*data)
+
+@dataclass
+class FarsiDict:
+    entries: list[Entry]
+
 
 
 def make_request(url: str) -> str:
     print(f"making request @ {url}")
     return httpx.get(url, follow_redirects=True, timeout=15.0).text
 
-
-def read_file(path: str) -> str:
-    with open(path, "r") as f:
-        return f.read()
-
-
-def write_file(path: str, content: str) -> None:
-    with open(path, "w") as f:
-        _ = f.write(content)
 
 
 def write_csv(path: str, entries: list[Entry]) -> None:
@@ -34,39 +46,42 @@ def write_csv(path: str, entries: list[Entry]) -> None:
             writer.writerow([getattr(e, atr) for atr in fields])
 
 
-def parse(html_content: str) -> Generator[Entry]:
+def iterate_html_element(soup: BeautifulSoup) -> Generator[Entry]:
+    # for loops nested, call me momma bird
+    for table in soup.find_all("table", {"class": "table vocab-list"}):
+        lst: list[str] = []
+        for tbody in table.find_all("tbody"):
+            for tr in tbody.find_all("tr"):
+                lst.clear()
+
+                for td in tr.find_all("td"):
+                    text = td.get_text().strip('\n')
+                    lst.append(text)
+
+                yield Entry.from_list(lst)
+
+def parse_html(html_content: str) -> list[Entry]:
     soup = BeautifulSoup(html_content, "html.parser")
 
-    content: str
-    title: str
+    entries: list[Entry] = []
 
-    for art in soup.find_all("article"):
-        for header in art.find_all("header"):
-            title = header.a.contents[0]
+    for entry in iterate_html_element(soup):
+        if entry:
+            entries.append(entry)
 
-        for div in art.find_all("div"):
-            if div.p:
-                content = div.p.contents[0]
-
-        yield Entry(content=content, title=title)
+    return entries
 
 
-def app() -> None:
-
-    dir_path = "html"
-    os.makedirs(dir_path, exist_ok=True)
-
-    for i in range(215):
-        content = make_request(f"https://www.chaiandconversation.com/persian-dictionary?page={i}#dictionary-results")
-        write_file(f"{dir_path}/page_{i}.txt", content)
-
-
-    sys.exit(0)
+@cli.command
+def parse() -> None:
 
     entries: list[Entry] = []
-    for file in Path(r"html/").glob("*.txt"):
-        entry = parse(html_content=read_file(file.absolute().__str__()))
-        entries.extend(entry)
+    for i, file in enumerate(Path(r"html/").glob("*.html")):
+        print(file)
+        with open(file.absolute().__str__(), "r") as f:
+            entry = parse_html(f.read())
+            entries.extend(entry)
+            break
 
     for e in entries:
         print(e)
@@ -74,5 +89,23 @@ def app() -> None:
     write_csv("output.csv", entries)
 
 
+@cli.command
+def download(
+    page_count: int,
+    html_path: str = "html"
+    ) -> None:
+
+    os.makedirs(html_path, exist_ok=True)
+
+    for i in range(page_count):
+        content = make_request(f"https://www.chaiandconversation.com/persian-dictionary?page={i}#dictionary-results")
+        path = f"{html_path}/page_{i}.html"
+        with open(path, "w") as f:
+            _ = f.write(content)
+
+
+
+
+
 if __name__ == "__main__":
-    app()
+    cli()
