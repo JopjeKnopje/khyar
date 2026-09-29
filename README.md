@@ -32,11 +32,26 @@ I use [jless](https://github.com/PaulJuliusMartinez/jless) for this
 ```
 
 
-## Dev
+## Dependencies
+Made with the usual stack of python thingabobs
+- [uv](https://docs.astral.sh/uv/getting-started/installation/#installation-methods) 
+- [prek](https://prek.j178.dev/installation/) (dev)
+- [ruff](https://docs.astral.sh/ruff/editors/setup/) (dev)
+- [basedpyright](https://github.com/DetachHead/basedpyright) (dev)
 
-Made with uv msgspec and httpx
 
+## Running
 
-prekcommi
+Download all the html pages and store in its the default directory `html/`.
+>```bash
+>uv run main.py download --page-count 215
+>```
+> You should check what the page count is when you open it in your browser.
+
+Parse all of the previously downloaded html files and write the result into `data.json`.
+>```bash
+>uv run main.py parse
+>```
+
 
 
