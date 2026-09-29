@@ -11,9 +11,13 @@ I use [jless](https://github.com/PaulJuliusMartinez/jless) for this
 <thead></thead>
 <tbody>
 		<tr>
+			<!-- phonetic -->
+			<td></td> 
+			<!-- english -->
 			<td></td>
+			<!-- script -->
 			<td></td>
-			<td></td>
+			<!-- appears_in -->
 			<td></td>
 		</tr>
 		<tr>
