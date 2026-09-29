@@ -1,6 +1,10 @@
-# Gotta learn that farsi
+# Khyar
 
-## Dict structure
+Quick and dirty web scraper for the [chai and conversation](https://www.chaiandconversation.com/persian-dictionary?page=1#dictionary-results)  dictionary. This website does not have a search engine for the dictionary. So I cobbled together this tool so you can download and search it locally in a JSON file.
+I use [jless](https://github.com/PaulJuliusMartinez/jless) for this
+
+
+## HTML Dict structure
 ```html
 <table class="table vocab-list" data-controller="vocab">
 <thread></thread>
@@ -22,3 +26,13 @@
 	</tbody>
 </table>
 ```
+
+
+## Dev
+
+Made with uv msgspec and httpx
+
+
+prekcommi
+
+
