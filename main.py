@@ -16,7 +16,6 @@ from cyclopts.core import App
 cli = App()
 
 
-
 @dataclass
 class Entry:
     phonetic: str
@@ -28,16 +27,15 @@ class Entry:
     def from_list(data: list[str]) -> Entry:
         return Entry(*data)
 
+
 @dataclass
 class FarsiDict:
     entries: list[Entry]
 
 
-
 def make_request(url: str) -> str:
     print(f"making request @ {url}")
     return httpx.get(url, follow_redirects=True, timeout=15.0).text
-
 
 
 def write_csv(path: str, entries: list[Entry]) -> None:
@@ -58,25 +56,33 @@ def iterate_html_element(soup: BeautifulSoup) -> Generator[Entry]:
                 lst.clear()
 
                 for td in tr.find_all("td"):
-                    text = td.get_text().strip('\n')
+                    text = td.get_text().strip("\n")
                     lst.append(text)
 
                 yield Entry.from_list(lst)
 
-def parse_html(html_content: str) -> list[Entry]:
+
+def parse_html_page_entries(html_content: str) -> list[Entry]:
     soup = BeautifulSoup(html_content, "html.parser")
-    entries: list[Entry] = []
+    page_entries: list[Entry] = []
 
     for entry in iterate_html_element(soup):
         if entry:
-            entries.append(entry)
-    return entries
+            page_entries.append(entry)
+    return page_entries
+
+
+def convert_to_unit_and_prefix(size: float) -> str:
+    units = ["bytes", "KiB", "MiB"]
+    count = 0
+    while size > 1024.0:
+        size /= 1024.0
+        count += 1
+    return f"{size:.2f}{units[count]}"
 
 
 @cli.command
-def parse(
-    html_dir: str = "html",
-    output_file: str = "data.json") -> None:
+def parse(html_dir: str = "html", output_file: str = "data.json") -> None:
 
     output_path = Path(output_file).as_posix()
 
@@ -87,31 +93,28 @@ def parse(
         for file in files:
             print(f"parsing file {file}")
             with open(file.absolute().__str__(), "r") as input:
-                entries = parse_html(input.read())
-                entry_count += len(entries)
-                json = msgspec.json.encode(entries)
+                page_entries = parse_html_page_entries(input.read())
+                entry_count += len(page_entries)
+                json = msgspec.json.encode(page_entries)
                 _ = output.write(json)
 
     file_size = os.path.getsize(output_path)
-    print(f"{entry_count} dictionary entries, file size {file_size}")
+    size_str = convert_to_unit_and_prefix(file_size)
+    print(f"file: {output_file}, size {size_str} @ {entry_count} dictionary entries, ")
 
 
 @cli.command
-def download(
-    page_count: int,
-    html_path: str = "html"
-    ) -> None:
+def download(page_count: int, html_path: str = "html") -> None:
 
     os.makedirs(html_path, exist_ok=True)
 
     for i in range(page_count):
-        content = make_request(f"https://www.chaiandconversation.com/persian-dictionary?page={i}#dictionary-results")
+        content = make_request(
+            f"https://www.chaiandconversation.com/persian-dictionary?page={i}#dictionary-results"
+        )
         path = f"{html_path}/page_{i}.html"
         with open(path, "w") as f:
             _ = f.write(content)
-
-
-
 
 
 if __name__ == "__main__":
