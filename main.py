@@ -1,16 +1,12 @@
-from base64 import encode
 import csv
-from errno import ENOTDIR
 import os
 from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Self
 
 import httpx
 import msgspec
 from bs4 import BeautifulSoup
-from bs4.dammit import EntitySubstitution
 from cyclopts.core import App
 
 cli = App()
