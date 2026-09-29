@@ -1,13 +1,16 @@
+from base64 import encode
 import csv
+from errno import ENOTDIR
 import os
 from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Self
 
-from bs4.dammit import EntitySubstitution
 import httpx
+import msgspec
 from bs4 import BeautifulSoup
+from bs4.dammit import EntitySubstitution
 from cyclopts.core import App
 
 cli = App()
@@ -62,31 +65,35 @@ def iterate_html_element(soup: BeautifulSoup) -> Generator[Entry]:
 
 def parse_html(html_content: str) -> list[Entry]:
     soup = BeautifulSoup(html_content, "html.parser")
-
     entries: list[Entry] = []
 
     for entry in iterate_html_element(soup):
         if entry:
             entries.append(entry)
-
     return entries
 
 
 @cli.command
-def parse() -> None:
+def parse(
+    html_dir: str = "html",
+    output_file: str = "data.json") -> None:
 
-    entries: list[Entry] = []
-    for i, file in enumerate(Path(r"html/").glob("*.html")):
-        print(file)
-        with open(file.absolute().__str__(), "r") as f:
-            entry = parse_html(f.read())
-            entries.extend(entry)
-            break
+    output_path = Path(output_file).as_posix()
 
-    for e in entries:
-        print(e)
+    entry_count = 0
 
-    write_csv("output.csv", entries)
+    files = Path(f"{html_dir}/").glob("*.html")
+    with open(output_path, "wb+") as output:
+        for file in files:
+            print(f"parsing file {file}")
+            with open(file.absolute().__str__(), "r") as input:
+                entries = parse_html(input.read())
+                entry_count += len(entries)
+                json = msgspec.json.encode(entries)
+                _ = output.write(json)
+
+    file_size = os.path.getsize(output_path)
+    print(f"{entry_count} dictionary entries, file size {file_size}")
 
 
 @cli.command

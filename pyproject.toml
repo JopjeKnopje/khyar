@@ -8,6 +8,7 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "cyclopts>=5.1.0",
     "httpx>=0.28.1",
+    "msgspec>=0.22.0",
 ]
 
 [project.scripts]
